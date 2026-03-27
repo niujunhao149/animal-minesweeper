@@ -390,15 +390,75 @@
             margin-left: 10px;
             border-radius: 5px;
         }
+
+        /* 3D 模式样式 */
+        .layer-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #c0c0c0;
+            border: 3px inset #808080;
+        }
+
+        .layer-controls button {
+            padding: 8px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            border: 2px outset #fff;
+            background: #c0c0c0;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+        }
+
+        .layer-controls button:active {
+            border: 2px inset #808080;
+            border-right-color: #fff;
+            border-bottom-color: #fff;
+        }
+
+        .layer-info {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .cell-3d {
+            position: relative;
+        }
+
+        .cell-3d::after {
+            content: attr(data-layer);
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            font-size: 10px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <h1>🦁 动物扫雷 🐾</h1>
     
     <div class="difficulty">
+        <button onclick="setGameMode('2d')" id="btn-2d" class="active">2D 模式</button>
+        <button onclick="setGameMode('3d')" id="btn-3d">3D 模式</button>
+    </div>
+    
+    <div class="difficulty" id="difficulty-2d">
         <button onclick="setDifficulty('easy')" id="btn-easy" class="active">简单 (9×9)</button>
         <button onclick="setDifficulty('medium')" id="btn-medium">中等 (16×16)</button>
         <button onclick="setDifficulty('hard')" id="btn-hard">困难 (16×30)</button>
+    </div>
+    
+    <div class="difficulty" id="difficulty-3d" style="display: none;">
+        <button onclick="setDifficulty3D('easy')" id="btn-3d-easy" class="active">简单 (5×5×5)</button>
+        <button onclick="setDifficulty3D('medium')" id="btn-3d-medium">中等 (7×7×7)</button>
+        <button onclick="setDifficulty3D('hard')" id="btn-3d-hard">困难 (9×9×9)</button>
     </div>
 
     <div class="game-container">
@@ -997,6 +1057,313 @@
 
         // 页面加载时读取设置
         loadSettings();
+
+        // ==================== 3D 扫雷功能 ====================
+        let gameMode = '2d'; // '2d' 或 '3d'
+        let layers = 5; // 3D 模式的层数
+        let currentLayer = 0; // 当前显示的层
+        let board3D = [];
+        let revealed3D = [];
+        let flagged3D = [];
+
+        function setGameMode(mode) {
+            gameMode = mode;
+            
+            // 更新按钮状态
+            document.getElementById('btn-2d').classList.remove('active');
+            document.getElementById('btn-3d').classList.remove('active');
+            document.getElementById(`btn-${mode}`).classList.add('active');
+            
+            // 显示/隐藏难度选项
+            document.getElementById('difficulty-2d').style.display = mode === '2d' ? 'flex' : 'none';
+            document.getElementById('difficulty-3d').style.display = mode === '3d' ? 'flex' : 'none';
+            
+            // 重置游戏
+            if (mode === '3d') {
+                setDifficulty3D('easy');
+            } else {
+                setDifficulty('easy');
+            }
+        }
+
+        function setDifficulty3D(level) {
+            document.querySelectorAll('#difficulty-3d button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-3d-${level}`).classList.add('active');
+            
+            switch(level) {
+                case 'easy':
+                    rows = 5; cols = 5; layers = 5; mineCount = 15;
+                    break;
+                case 'medium':
+                    rows = 7; cols = 7; layers = 7; mineCount = 40;
+                    break;
+                case 'hard':
+                    rows = 9; cols = 9; layers = 9; mineCount = 80;
+                    break;
+            }
+            currentLayer = 0;
+            resetGame3D();
+        }
+
+        function initBoard3D() {
+            board3D = Array(layers).fill().map(() => 
+                Array(rows).fill().map(() => Array(cols).fill(0))
+            );
+            revealed3D = Array(layers).fill().map(() => 
+                Array(rows).fill().map(() => Array(cols).fill(false))
+            );
+            flagged3D = Array(layers).fill().map(() => 
+                Array(rows).fill().map(() => Array(cols).fill(false))
+            );
+        }
+
+        function placeMines3D(excludeLayer, excludeRow, excludeCol) {
+            let placed = 0;
+            while (placed < mineCount) {
+                const l = Math.floor(Math.random() * layers);
+                const r = Math.floor(Math.random() * rows);
+                const c = Math.floor(Math.random() * cols);
+                
+                // 不在第一次点击的位置及周围放置地雷
+                if (Math.abs(l - excludeLayer) <= 1 && 
+                    Math.abs(r - excludeRow) <= 1 && 
+                    Math.abs(c - excludeCol) <= 1) continue;
+                if (board3D[l][r][c] === -1) continue;
+                
+                board3D[l][r][c] = -1;
+                placed++;
+            }
+            
+            // 计算数字（3D 中有 26 个邻居）
+            for (let l = 0; l < layers; l++) {
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (board3D[l][r][c] === -1) continue;
+                        let count = 0;
+                        for (let dl = -1; dl <= 1; dl++) {
+                            for (let dr = -1; dr <= 1; dr++) {
+                                for (let dc = -1; dc <= 1; dc++) {
+                                    if (dl === 0 && dr === 0 && dc === 0) continue;
+                                    const nl = l + dl;
+                                    const nr = r + dr;
+                                    const nc = c + dc;
+                                    if (nl >= 0 && nl < layers && 
+                                        nr >= 0 && nr < rows && 
+                                        nc >= 0 && nc < cols && 
+                                        board3D[nl][nr][nc] === -1) {
+                                        count++;
+                                    }
+                                }
+                            }
+                        }
+                        board3D[l][r][c] = count;
+                    }
+                }
+            }
+        }
+
+        function renderBoard3D() {
+            const boardEl = document.getElementById('board');
+            boardEl.style.gridTemplateColumns = `repeat(${cols}, 35px)`;
+            boardEl.innerHTML = '';
+
+            // 添加层控制
+            const layerControls = document.createElement('div');
+            layerControls.className = 'layer-controls';
+            layerControls.innerHTML = `
+                <button onclick="changeLayer(-1)">⬆️ 上一层</button>
+                <div class="layer-info">第 ${currentLayer + 1} 层 / 共 ${layers} 层</div>
+                <button onclick="changeLayer(1)">⬇️ 下一层</button>
+            `;
+            boardEl.appendChild(layerControls);
+
+            // 添加网格容器
+            const gridContainer = document.createElement('div');
+            gridContainer.style.display = 'grid';
+            gridContainer.style.gridTemplateColumns = `repeat(${cols}, 35px)`;
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell cell-3d';
+                    cell.dataset.layer = currentLayer;
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    
+                    cell.addEventListener('click', () => handleClick3D(currentLayer, r, c));
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        handleRightClick3D(currentLayer, r, c);
+                    });
+                    
+                    gridContainer.appendChild(cell);
+                }
+            }
+            boardEl.appendChild(gridContainer);
+            updateDisplay3D();
+        }
+
+        function changeLayer(delta) {
+            const newLayer = currentLayer + delta;
+            if (newLayer >= 0 && newLayer < layers) {
+                currentLayer = newLayer;
+                renderBoard3D();
+            }
+        }
+
+        function handleClick3D(l, r, c) {
+            if (gameOver || gameWon || flagged3D[l][r][c] || revealed3D[l][r][c]) return;
+
+            if (firstClick) {
+                firstClick = false;
+                placeMines3D(l, r, c);
+                startTimer();
+            }
+
+            if (board3D[l][r][c] === -1) {
+                // 踩到地雷
+                gameOver = true;
+                revealed3D[l][r][c] = true;
+                revealAllMines3D();
+                document.getElementById('reset-btn').textContent = ANIMALS.dead;
+                stopTimer();
+                updateDisplay3D();
+                showGameOver(false);
+                return;
+            }
+
+            reveal3D(l, r, c);
+            checkWin3D();
+            updateDisplay3D();
+        }
+
+        function handleRightClick3D(l, r, c) {
+            if (gameOver || gameWon || revealed3D[l][r][c]) return;
+            
+            flagged3D[l][r][c] = !flagged3D[l][r][c];
+            updateMineCounter3D();
+            updateDisplay3D();
+            checkWin3D();
+        }
+
+        function reveal3D(l, r, c) {
+            if (l < 0 || l >= layers || r < 0 || r >= rows || c < 0 || c >= cols) return;
+            if (revealed3D[l][r][c] || flagged3D[l][r][c]) return;
+            
+            revealed3D[l][r][c] = true;
+            
+            if (board3D[l][r][c] === 0) {
+                // 揭开周围 26 个邻居
+                for (let dl = -1; dl <= 1; dl++) {
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            reveal3D(l + dl, r + dr, c + dc);
+                        }
+                    }
+                }
+            }
+        }
+
+        function revealAllMines3D() {
+            for (let l = 0; l < layers; l++) {
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (board3D[l][r][c] === -1) {
+                            revealed3D[l][r][c] = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkWin3D() {
+            let unrevealedSafe = 0;
+            for (let l = 0; l < layers; l++) {
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (!revealed3D[l][r][c] && board3D[l][r][c] !== -1) {
+                            unrevealedSafe++;
+                        }
+                    }
+                }
+            }
+            
+            if (unrevealedSafe === 0) {
+                gameWon = true;
+                gameOver = true;
+                document.getElementById('reset-btn').textContent = ANIMALS.cool;
+                stopTimer();
+                showGameOver(true);
+            }
+        }
+
+        function updateDisplay3D() {
+            const cells = document.querySelectorAll('.cell-3d');
+            cells.forEach(cell => {
+                const l = parseInt(cell.dataset.layer);
+                const r = parseInt(cell.dataset.row);
+                const c = parseInt(cell.dataset.col);
+                
+                cell.className = 'cell cell-3d';
+                cell.innerHTML = '';
+                
+                if (revealed3D[l][r][c]) {
+                    cell.classList.add('revealed');
+                    if (board3D[l][r][c] === -1) {
+                        cell.textContent = ANIMALS.mine;
+                        if (gameOver && !gameWon) {
+                            cell.classList.add('mine-exploded');
+                        }
+                    } else if (board3D[l][r][c] > 0) {
+                        const span = document.createElement('span');
+                        span.className = `num-${Math.min(board3D[l][r][c], 8)}`;
+                        span.textContent = board3D[l][r][c];
+                        cell.appendChild(span);
+                    }
+                } else if (flagged3D[l][r][c]) {
+                    cell.classList.add('flagged');
+                    cell.textContent = ANIMALS.flag;
+                }
+            });
+        }
+
+        function updateMineCounter3D() {
+            let flagCount = 0;
+            for (let l = 0; l < layers; l++) {
+                for (let r = 0; r < rows; r++) {
+                    for (let c = 0; c < cols; c++) {
+                        if (flagged3D[l][r][c]) flagCount++;
+                    }
+                }
+            }
+            const remaining = mineCount - flagCount;
+            document.getElementById('mine-counter').textContent = String(Math.max(0, remaining)).padStart(3, '0');
+        }
+
+        function resetGame3D() {
+            stopTimer();
+            timer = 0;
+            document.getElementById('timer').textContent = '000';
+            gameOver = false;
+            gameWon = false;
+            firstClick = true;
+            document.getElementById('reset-btn').textContent = ANIMALS.happy;
+            document.getElementById('game-over-overlay').style.display = 'none';
+            
+            initBoard3D();
+            updateMineCounter3D();
+            renderBoard3D();
+        }
+
+        // 修改 resetGame 函数以支持 3D 模式
+        const originalResetGame = resetGame;
+        resetGame = function() {
+            if (gameMode === '3d') {
+                resetGame3D();
+            } else {
+                originalResetGame();
+            }
+        };
     </script>
 </body>
 </html>
