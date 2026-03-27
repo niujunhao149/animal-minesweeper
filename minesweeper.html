@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🦁 动物扫雷</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💣</text></svg>">
     <style>
         * {
             margin: 0;
@@ -201,6 +202,194 @@
         .game-over-modal button:hover {
             background: #764ba2;
         }
+
+        /* 设置面板样式 */
+        .settings-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 28px;
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+
+        .settings-btn:hover {
+            transform: rotate(90deg);
+        }
+
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .settings-panel {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+        }
+
+        .settings-panel h2 {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+
+        .emoji-setting {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+
+        .emoji-setting label {
+            flex: 1;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .emoji-preview {
+            font-size: 32px;
+            margin: 0 15px;
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .emoji-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .emoji-input input[type="text"] {
+            width: 60px;
+            font-size: 24px;
+            text-align: center;
+            padding: 5px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .emoji-input input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .upload-btn:hover {
+            background: #764ba2;
+        }
+
+        .clear-btn {
+            padding: 8px 15px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .clear-btn:hover {
+            background: #ee5a5a;
+        }
+
+        .settings-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .settings-actions button {
+            padding: 12px 30px;
+            font-size: 16px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .save-settings {
+            background: #667eea;
+            color: white;
+        }
+
+        .save-settings:hover {
+            background: #764ba2;
+        }
+
+        .reset-settings {
+            background: #ddd;
+            color: #333;
+        }
+
+        .reset-settings:hover {
+            background: #ccc;
+        }
+
+        .close-settings {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .close-settings:hover {
+            background: #ee5a5a;
+        }
+
+        .preset-emojis {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .preset-emoji {
+            font-size: 24px;
+            padding: 5px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            transition: all 0.2s;
+        }
+
+        .preset-emoji:hover {
+            border-color: #667eea;
+            transform: scale(1.2);
+        }
+
+        .image-preview {
+            max-width: 50px;
+            max-height: 50px;
+            margin-left: 10px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
@@ -224,6 +413,136 @@
     <div class="instructions">
         <p>🖱️ 左键点击揭开格子 | 右键点击标记旗帜 🚩</p>
         <p>🦁 = 地雷 | 🐶 = 旗帜 | 找出所有安全格子获胜！</p>
+    </div>
+
+    <!-- 设置按钮 -->
+    <button class="settings-btn" onclick="openSettings()">⚙️</button>
+
+    <!-- 设置面板 -->
+    <div class="settings-overlay" id="settings-overlay" style="display: none;">
+        <div class="settings-panel">
+            <h2>🎨 自定义表情设置</h2>
+            
+            <div class="emoji-setting">
+                <label>💣 地雷：</label>
+                <div class="emoji-preview" id="mine-preview">🦁</div>
+                <div class="emoji-input">
+                    <input type="text" id="mine-input" placeholder="🦁" maxlength="2">
+                    <button class="upload-btn" onclick="document.getElementById('mine-file').click()">上传图片</button>
+                    <input type="file" id="mine-file" accept="image/*" onchange="uploadImage('mine', this)">
+                    <button class="clear-btn" onclick="clearImage('mine')">清除</button>
+                </div>
+                <div class="preset-emojis">
+                    <span class="preset-emoji" onclick="setEmoji('mine', '🦁')">🦁</span>
+                    <span class="preset-emoji" onclick="setEmoji('mine', '💣')">💣</span>
+                    <span class="preset-emoji" onclick="setEmoji('mine', '🔥')">🔥</span>
+                    <span class="preset-emoji" onclick="setEmoji('mine', '⚡')">⚡</span>
+                    <span class="preset-emoji" onclick="setEmoji('mine', '💀')">💀</span>
+                    <span class="preset-emoji" onclick="setEmoji('mine', '🎃')">🎃</span>
+                </div>
+            </div>
+
+            <div class="emoji-setting">
+                <label>🚩 旗帜：</label>
+                <div class="emoji-preview" id="flag-preview">🐶</div>
+                <div class="emoji-input">
+                    <input type="text" id="flag-input" placeholder="🐶" maxlength="2">
+                    <button class="upload-btn" onclick="document.getElementById('flag-file').click()">上传图片</button>
+                    <input type="file" id="flag-file" accept="image/*" onchange="uploadImage('flag', this)">
+                    <button class="clear-btn" onclick="clearImage('flag')">清除</button>
+                </div>
+                <div class="preset-emojis">
+                    <span class="preset-emoji" onclick="setEmoji('flag', '🐶')">🐶</span>
+                    <span class="preset-emoji" onclick="setEmoji('flag', '🚩')">🚩</span>
+                    <span class="preset-emoji" onclick="setEmoji('flag', '🏴')">🏴</span>
+                    <span class="preset-emoji" onclick="setEmoji('flag', '🎯')">🎯</span>
+                    <span class="preset-emoji" onclick="setEmoji('flag', '⭐')">⭐</span>
+                    <span class="preset-emoji" onclick="setEmoji('flag', '❤️')">❤️</span>
+                </div>
+            </div>
+
+            <div class="emoji-setting">
+                <label>😺 开心：</label>
+                <div class="emoji-preview" id="happy-preview">😺</div>
+                <div class="emoji-input">
+                    <input type="text" id="happy-input" placeholder="😺" maxlength="2">
+                    <button class="upload-btn" onclick="document.getElementById('happy-file').click()">上传图片</button>
+                    <input type="file" id="happy-file" accept="image/*" onchange="uploadImage('happy', this)">
+                    <button class="clear-btn" onclick="clearImage('happy')">清除</button>
+                </div>
+                <div class="preset-emojis">
+                    <span class="preset-emoji" onclick="setEmoji('happy', '😺')">😺</span>
+                    <span class="preset-emoji" onclick="setEmoji('happy', '😊')">😊</span>
+                    <span class="preset-emoji" onclick="setEmoji('happy', '🙂')">🙂</span>
+                    <span class="preset-emoji" onclick="setEmoji('happy', '😀')">😀</span>
+                    <span class="preset-emoji" onclick="setEmoji('happy', '😎')">😎</span>
+                    <span class="preset-emoji" onclick="setEmoji('happy', '🤖')">🤖</span>
+                </div>
+            </div>
+
+            <div class="emoji-setting">
+                <label>🙀 害怕：</label>
+                <div class="emoji-preview" id="scared-preview">🙀</div>
+                <div class="emoji-input">
+                    <input type="text" id="scared-input" placeholder="🙀" maxlength="2">
+                    <button class="upload-btn" onclick="document.getElementById('scared-file').click()">上传图片</button>
+                    <input type="file" id="scared-file" accept="image/*" onchange="uploadImage('scared', this)">
+                    <button class="clear-btn" onclick="clearImage('scared')">清除</button>
+                </div>
+                <div class="preset-emojis">
+                    <span class="preset-emoji" onclick="setEmoji('scared', '🙀')">🙀</span>
+                    <span class="preset-emoji" onclick="setEmoji('scared', '😱')">😱</span>
+                    <span class="preset-emoji" onclick="setEmoji('scared', '😨')">😨</span>
+                    <span class="preset-emoji" onclick="setEmoji('scared', '😰')">😰</span>
+                    <span class="preset-emoji" onclick="setEmoji('scared', '😳')">😳</span>
+                    <span class="preset-emoji" onclick="setEmoji('scared', '🫣')">🫣</span>
+                </div>
+            </div>
+
+            <div class="emoji-setting">
+                <label>😿 死亡：</label>
+                <div class="emoji-preview" id="dead-preview">😿</div>
+                <div class="emoji-input">
+                    <input type="text" id="dead-input" placeholder="😿" maxlength="2">
+                    <button class="upload-btn" onclick="document.getElementById('dead-file').click()">上传图片</button>
+                    <input type="file" id="dead-file" accept="image/*" onchange="uploadImage('dead', this)">
+                    <button class="clear-btn" onclick="clearImage('dead')">清除</button>
+                </div>
+                <div class="preset-emojis">
+                    <span class="preset-emoji" onclick="setEmoji('dead', '😿')">😿</span>
+                    <span class="preset-emoji" onclick="setEmoji('dead', '💀')">💀</span>
+                    <span class="preset-emoji" onclick="setEmoji('dead', '😵')">😵</span>
+                    <span class="preset-emoji" onclick="setEmoji('dead', '☠️')">☠️</span>
+                    <span class="preset-emoji" onclick="setEmoji('dead', '😢')">😢</span>
+                    <span class="preset-emoji" onclick="setEmoji('dead', '😭')">😭</span>
+                </div>
+            </div>
+
+            <div class="emoji-setting">
+                <label>😎 胜利：</label>
+                <div class="emoji-preview" id="cool-preview">😎</div>
+                <div class="emoji-input">
+                    <input type="text" id="cool-input" placeholder="😎" maxlength="2">
+                    <button class="upload-btn" onclick="document.getElementById('cool-file').click()">上传图片</button>
+                    <input type="file" id="cool-file" accept="image/*" onchange="uploadImage('cool', this)">
+                    <button class="clear-btn" onclick="clearImage('cool')">清除</button>
+                </div>
+                <div class="preset-emojis">
+                    <span class="preset-emoji" onclick="setEmoji('cool', '😎')">😎</span>
+                    <span class="preset-emoji" onclick="setEmoji('cool', '🎉')">🎉</span>
+                    <span class="preset-emoji" onclick="setEmoji('cool', '🏆')">🏆</span>
+                    <span class="preset-emoji" onclick="setEmoji('cool', '🥇')">🥇</span>
+                    <span class="preset-emoji" onclick="setEmoji('cool', '👑')">👑</span>
+                    <span class="preset-emoji" onclick="setEmoji('cool', '🌟')">🌟</span>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <button class="save-settings" onclick="saveSettings()">💾 保存设置</button>
+                <button class="reset-settings" onclick="resetToDefault()">🔄 恢复默认</button>
+                <button class="close-settings" onclick="closeSettings()">✖️ 关闭</button>
+            </div>
+        </div>
     </div>
 
     <div class="game-over-overlay" id="game-over-overlay" style="display: none;">
@@ -503,6 +822,181 @@
 
         // 初始化游戏
         resetGame();
+
+        // 设置相关功能
+        let customEmojis = {
+            mine: '🦁',
+            flag: '🐶',
+            happy: '😺',
+            scared: '🙀',
+            dead: '😿',
+            cool: '😎'
+        };
+
+        let customImages = {
+            mine: null,
+            flag: null,
+            happy: null,
+            scared: null,
+            dead: null,
+            cool: null
+        };
+
+        // 从 localStorage 加载设置
+        function loadSettings() {
+            const savedEmojis = localStorage.getItem('minesweeper-emojis');
+            const savedImages = localStorage.getItem('minesweeper-images');
+            
+            if (savedEmojis) {
+                customEmojis = JSON.parse(savedEmojis);
+            }
+            
+            if (savedImages) {
+                customImages = JSON.parse(savedImages);
+            }
+            
+            updateAllPreviews();
+            applySettings();
+        }
+
+        // 应用设置到游戏
+        function applySettings() {
+            ANIMALS.mine = customImages.mine || customEmojis.mine;
+            ANIMALS.flag = customImages.flag || customEmojis.flag;
+            ANIMALS.happy = customImages.happy || customEmojis.happy;
+            ANIMALS.scared = customImages.scared || customEmojis.scared;
+            ANIMALS.dead = customImages.dead || customEmojis.dead;
+            ANIMALS.cool = customImages.cool || customEmojis.cool;
+            
+            // 更新重置按钮
+            if (!gameOver && !gameWon) {
+                document.getElementById('reset-btn').innerHTML = ANIMALS.happy;
+            }
+            
+            updateDisplay();
+        }
+
+        // 更新所有预览
+        function updateAllPreviews() {
+            const types = ['mine', 'flag', 'happy', 'scared', 'dead', 'cool'];
+            types.forEach(type => {
+                const preview = document.getElementById(`${type}-preview`);
+                const input = document.getElementById(`${type}-input`);
+                
+                if (customImages[type]) {
+                    preview.innerHTML = `<img src="${customImages[type]}" class="image-preview">`;
+                } else {
+                    preview.textContent = customEmojis[type];
+                }
+                
+                if (input) {
+                    input.value = customEmojis[type];
+                }
+            });
+        }
+
+        // 打开设置面板
+        function openSettings() {
+            document.getElementById('settings-overlay').style.display = 'flex';
+            updateAllPreviews();
+        }
+
+        // 关闭设置面板
+        function closeSettings() {
+            document.getElementById('settings-overlay').style.display = 'none';
+        }
+
+        // 设置 emoji
+        function setEmoji(type, emoji) {
+            customEmojis[type] = emoji;
+            customImages[type] = null; // 清除自定义图片
+            
+            const preview = document.getElementById(`${type}-preview`);
+            const input = document.getElementById(`${type}-input`);
+            
+            preview.textContent = emoji;
+            input.value = emoji;
+            
+            applySettings();
+        }
+
+        // 上传图片
+        function uploadImage(type, input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // 将图片转换为 base64 并缩小尺寸
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    // 设置为 32x32 像素
+                    canvas.width = 32;
+                    canvas.height = 32;
+                    
+                    // 绘制图片
+                    ctx.drawImage(img, 0, 0, 32, 32);
+                    
+                    // 转换为 base64
+                    const dataUrl = canvas.toDataURL('image/png');
+                    
+                    customImages[type] = dataUrl;
+                    
+                    const preview = document.getElementById(`${type}-preview`);
+                    preview.innerHTML = `<img src="${dataUrl}" class="image-preview">`;
+                    
+                    applySettings();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 清除图片
+        function clearImage(type) {
+            customImages[type] = null;
+            const preview = document.getElementById(`${type}-preview`);
+            preview.textContent = customEmojis[type];
+            applySettings();
+        }
+
+        // 保存设置
+        function saveSettings() {
+            localStorage.setItem('minesweeper-emojis', JSON.stringify(customEmojis));
+            localStorage.setItem('minesweeper-images', JSON.stringify(customImages));
+            alert('✅ 设置已保存！');
+        }
+
+        // 恢复默认设置
+        function resetToDefault() {
+            customEmojis = {
+                mine: '🦁',
+                flag: '🐶',
+                happy: '😺',
+                scared: '🙀',
+                dead: '😿',
+                cool: '😎'
+            };
+            
+            customImages = {
+                mine: null,
+                flag: null,
+                happy: null,
+                scared: null,
+                dead: null,
+                cool: null
+            };
+            
+            updateAllPreviews();
+            applySettings();
+            alert('🔄 已恢复默认设置！');
+        }
+
+        // 页面加载时读取设置
+        loadSettings();
     </script>
 </body>
 </html>
